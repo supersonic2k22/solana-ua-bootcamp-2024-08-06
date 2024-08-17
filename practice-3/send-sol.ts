@@ -7,7 +7,8 @@ import {
     Transaction,
     clusterApiUrl,
     Connection,
-    sendAndConfirmTransaction
+    sendAndConfirmTransaction,
+    TransactionInstruction
 } from "@solana/web3.js";
 
 let privateKey = process.env["SECRET_KEY"];
@@ -23,7 +24,7 @@ const connection = new Connection(clusterApiUrl('devnet'));
 
 console.log(`Public key: ${sender.publicKey.toBase58()}`)
 
-const recipient = new PublicKey("ECq56tKxckgqep9ioKKeyazowNUU4Uw4bPEC4cJGzt1F");
+const recipient = new PublicKey(`${process.env["CLASSMATE_PUBLIC_KEY"]}`);
 console.log(`Attempting to send 0.01 SOL to ${recipient.toBase58()}...`);
 
 const transaction = new Transaction();
@@ -34,6 +35,20 @@ const sendSolInstruction = SystemProgram.transfer({
     lamports: 0.01 * LAMPORTS_PER_SOL,
 });
 transaction.add(sendSolInstruction);
+
+const memoProgram = new PublicKey(
+    "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr"
+);
+const memoText = "Hello from Solana!";
+
+const addMemoInstruction = new TransactionInstruction({
+    keys: [{ pubkey: sender.publicKey, isSigner: true, isWritable: true }],
+    data: Buffer.from(memoText, "utf-8"),
+    programId: memoProgram,
+});
+
+transaction.add(addMemoInstruction);
+console.log(`memo is: ${memoText}`);
 
 const signature = await sendAndConfirmTransaction(connection, transaction, [
     sender,
